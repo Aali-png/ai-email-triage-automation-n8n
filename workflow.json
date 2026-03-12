@@ -1,0 +1,442 @@
+{
+  "name": "AI Email Triage & Routing Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "2c973f73-d7e3-4928-ac48-280c70da16d6",
+      "name": "📥 New Email Listener",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        176,
+        576
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mkJF4X87okSAQqjP",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Email:\nSubject: {{ $json.subject }}\nBody: {{ $json.text }}\nFrom: {{ $json.from }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an email classification assistant. Analyze the email and classify it into exactly one category: sales, support, meeting, or spam. Also assign a priority level: high, medium, or low."
+        }
+      },
+      "id": "f910f63b-2f38-4d20-866c-1fb7339471c6",
+      "name": "🧠 Email Classification Engine",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        400,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "9d906564-3f24-4855-b932-b160698d3773",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        800
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "V2ReYQHbylCT0cil",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"category\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"enum\": [\"sales\", \"support\", \"meeting\", \"spam\"]\n\t\t},\n\t\t\"reason\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Explanation for the classification\"\n\t\t},\n\t\t\"priority\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"enum\": [\"high\", \"medium\", \"low\"]\n\t\t}\n\t},\n\t\"required\": [\"category\", \"reason\", \"priority\"]\n}"
+      },
+      "id": "8cb822a8-ad77-42b8-aaf6-bf53369f35fc",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn [\n  {\n    json: {\n      category: parsed.category,\n      reason: parsed.reason,\n      priority: parsed.priority,\n      subject: $('📥 New Email Listener').item.json.subject,\n      text: $('📥 New Email Listener').item.json.text,\n      from: $('📥 New Email Listener').item.json.from\n    }\n  }\n];"
+      },
+      "id": "87e994ec-d233-4bcc-99cf-4b3c71e7f1ce",
+      "name": "🧩 Parse Classification Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "336fe0c8-2c3d-48f7-bfc4-30c98431b53f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "support",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "93fa0f2e-69fc-4fbe-a6ee-3d7c3e5493f1"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "meeting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "537612d3-cfbf-4ab3-84d1-319cc9d60327"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "spam",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a6067ae8-9e0f-4955-8993-52afd654865d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "de0c2ecb-3fe7-48de-b419-3687800f0dde",
+      "name": "🚦 Route by Email Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "532c2f98-fb39-4890-8766-6e6a077bf1c0",
+      "name": "📈 Save Sales Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1200,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NjwTGACaosDv42Tp",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__support_channel_id__>"
+        },
+        "text": "=🚨 New Support Request\n\n*From:* {{ $json.from }}\n*Subject:* {{ $json.subject }}\n*Priority:* {{ $json.priority }}\n*Reason:* {{ $json.reason }}\n\n*Email Body:*\n{{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "d05d6ea7-32d1-4080-aca1-d58aa9c5b634",
+      "name": "🛠️ Notify Support Team",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1200,
+        480
+      ],
+      "webhookId": "d59cd64a-3dcd-4bde-89f1-3802fdae51ae"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.from }}",
+        "subject": "=Re: {{ $json.subject }}",
+        "message": "Hi,\n\nThanks for reaching out.\nI'd be happy to schedule a meeting.\nPlease use this booking link: https://calendly.com/your-link\n\nBest regards",
+        "options": {}
+      },
+      "id": "d5a162cd-95d8-4337-b59c-b7f89690c1bb",
+      "name": "📅 Send Meeting Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        672
+      ],
+      "webhookId": "d42cccf4-3d75-4220-917d-5b431f2abe3c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mkJF4X87okSAQqjP",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "ignored",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "category",
+              "value": "={{ $json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "from",
+              "value": "={{ $json.from }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "84a8a468-5eb6-4c4c-be20-ead5d1231057",
+      "name": "🗑️ Ignore Spam",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "content": "AI EMAIL TRIAGE SYSTEM\n\nPurpose:\nAutomatically classify incoming emails and route them\nto the correct department.\n\nFeatures:\n• AI email classification\n• Automated routing\n• Sales lead capture\n• Support alerts\n• Meeting auto-replies\n• Spam filtering",
+        "height": 272,
+        "width": 784
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        208,
+        208
+      ],
+      "typeVersion": 1,
+      "id": "542f7bd1-3aa5-48b7-bc95-775beb6bd0e8",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🧠 Email Classification Engine",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "🧠 Email Classification Engine",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📥 New Email Listener": {
+      "main": [
+        [
+          {
+            "node": "🧠 Email Classification Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Email Classification Engine": {
+      "main": [
+        [
+          {
+            "node": "🧩 Parse Classification Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧩 Parse Classification Output": {
+      "main": [
+        [
+          {
+            "node": "🚦 Route by Email Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚦 Route by Email Type": {
+      "main": [
+        [
+          {
+            "node": "📈 Save Sales Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🛠️ Notify Support Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📅 Send Meeting Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🗑️ Ignore Spam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2847c1f5-089d-43df-9bec-e5ea4d32f208",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "664a2037a0a7e61fdd5522f4f97694ac39ebddd8e39e7f0c407a1ef379117ba9"
+  },
+  "id": "7fgvCgwBKwdPXeUW",
+  "tags": []
+}
